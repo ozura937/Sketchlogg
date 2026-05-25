@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>SketchLog – Pantau Belajar Menggambar</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0f1a;
+  --surface: #1a1a2e;
+  --surface2: #22223b;
+  --border: #2d2d4e;
+  --accent: #e8a838;
+  --accent2: #f4c66a;
+  --text: #f0eee8;
+  --muted: #7a7a9a;
+  --week1: #5c3d1e;
+  --week1b: #f4a261;
+  --week2: #1a3a4a;
+  --week2b: #48cae4;
+  --week3: #1a3a2a;
+  --week3b: #52b788;
+  --week4: #2d1a4a;
+  --week4b: #c77dff;
+  --rest: #2a2a2a;
+  --restb: #aaaaaa;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── noise overlay ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0;
+}
+
+/* ── HEADER ── */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(15,15,26,0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+.logo span { color: var(--muted); font-weight: 400; }
+.streak-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, #3d2a00, #5c3d00);
+  border: 1px solid var(--accent);
+  border-radius: 20px; padding: 5px 12px;
+  font-family: 'Space Mono', monospace; font-size: 12px; color: var(--accent);
+}
+
+/* ── NAV TABS ── */
+.tabs {
+  display: flex; overflow-x: auto;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 1; min-width: 70px;
+  padding: 12px 8px; text-align: center;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
+  color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s; white-space: nowrap;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── PAGES ── */
+.page { display: none; padding: 20px 16px 100px; position: relative; z-index: 1; }
+.page.active { display: block; }
+
+/* ── TODAY CARD ── */
+.today-hero {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.today-hero::before {
+  content: '';
+  position: absolute; top: -40px; right: -40px;
+  width: 150px; height: 150px;
+  background: radial-gradient(circle, rgba(232,168,56,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.day-label { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+.day-title { font-size: 20px; font-weight: 700; line-height: 1.2; margin-bottom: 6px; }
+.day-cat {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 20px; margin-bottom: 14px;
+}
+.day-goal { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 18px; }
+
+.done-btn {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #2d4a1e, #3d6428);
+  border: 1px solid #52b788;
+  border-radius: var(--radius-sm);
+  color: #52b788; font-family: 'Sora', sans-serif;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: all 0.2s;
+}
+.done-btn:active { transform: scale(0.98); }
+.done-btn.completed {
+  background: linear-gradient(135deg, #1a3a1a, #224422);
+  color: #52b788;
+}
+.undone-btn {
+  width: 100%; padding: 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted); font-family: 'Sora', sans-serif;
+  font-size: 12px; cursor: pointer; margin-top: 8px;
+  transition: all 0.2s;
+}
+
+/* ── STEPS ── */
+.section-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin: 20px 0 10px;
+}
+.steps-list { display: flex; flex-direction: column; gap: 8px; }
+.step-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px;
+}
+.step-num {
+  min-width: 24px; height: 24px;
+  background: var(--accent); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', monospace; font-size: 11px;
+  font-weight: 700; color: #000;
+}
+.step-text { font-size: 13px; line-height: 1.6; color: var(--text); }
+
+/* ── TIP BOX ── */
+.tip-box {
+  background: linear-gradient(135deg, #2a2400, #3a3200);
+  border: 1px solid #5a4a00;
+  border-radius: var(--radius-sm);
+  padding: 14px; margin-top: 16px;
+}
+.tip-label { font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+.tip-text { font-size: 13px; color: #c8b070; line-height: 1.6; }
+
+/* ── YOUTUBE LINKS ── */
+.yt-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.yt-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px;
+  text-decoration: none;
+}
+.yt-icon {
+  min-width: 32px; height: 32px; background: #cc0000;
+  border-radius: 8px; display: flex; align-items: center;
+  justify-content: center; font-size: 14px;
+}
+.yt-text { font-size: 12px; color: var(--text); line-height: 1.4; }
+
+/* ── CALENDAR ── */
+.week-group { margin-bottom: 24px; }
+.week-label {
+  font-family: 'Space Mono', monospace; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 6px 12px; border-radius: 20px;
+  display: inline-block; margin-bottom: 10px;
+}
+.day-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-day {
+  aspect-ratio: 1; border-radius: 10px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  cursor: pointer; border: 1.5px solid transparent;
+  transition: all 0.15s; position: relative;
+  background: var(--surface);
+}
+.cal-day .cn { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
+.cal-day .ci { font-size: 8px; color: var(--muted); margin-top: 1px; }
+.cal-day.done { background: #1a3a1a; border-color: #52b788; }
+.cal-day.done .cn { color: #52b788; }
+.cal-day.today { border-color: var(--accent) !important; }
+.cal-day.rest-day { opacity: 0.5; }
+.cal-day.future { opacity: 0.4; cursor: default; }
+
+/* ── PROGRESS ── */
+.progress-ring-wrap { display: flex; justify-content: center; margin: 24px 0; }
+svg.ring { transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--surface2); stroke-width: 12; }
+.ring-fill { fill: none; stroke: var(--accent); stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+.ring-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; }
+.ring-pct { font-family: 'Space Mono', monospace; font-size: 32px; font-weight: 700; color: var(--accent); }
+.ring-sub { font-size: 12px; color: var(--muted); }
+
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 16px; text-align: center;
+}
+.stat-val { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; color: var(--accent); }
+.stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+.week-bars { display: flex; flex-direction: column; gap: 10px; }
+.week-bar-row { display: flex; align-items: center; gap: 10px; }
+.week-bar-label { font-size: 12px; color: var(--muted); width: 80px; flex-shrink: 0; }
+.week-bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.week-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+.week-bar-num { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); width: 40px; text-align: right; flex-shrink: 0; }
+
+/* ── REMINDER ── */
+.reminder-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+}
+.time-display {
+  font-family: 'Space Mono', monospace; font-size: 48px;
+  font-weight: 700; color: var(--accent); text-align: center;
+  margin: 16px 0; letter-spacing: -2px;
+}
+.time-inputs { display: flex; gap: 10px; margin-bottom: 16px; }
+.time-inputs input[type=number] {
+  flex: 1; padding: 12px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font-family: 'Space Mono', monospace;
+  font-size: 24px; text-align: center; -moz-appearance: textfield;
+}
+.time-inputs input::-webkit-outer-spin-button,
+.time-inputs input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.time-sep { font-family: 'Space Mono', monospace; font-size: 30px; color: var(--muted); display: flex; align-items: center; }
+.toggle-btn {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #3d2a00, #5c3d00);
+  border: 1px solid var(--accent); border-radius: var(--radius-sm);
+  color: var(--accent); font-family: 'Sora', sans-serif;
+  font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.toggle-btn.on { background: linear-gradient(135deg, #2d4a1e, #3d6428); border-color: #52b788; color: #52b788; }
+.toggle-btn:active { transform: scale(0.98); }
+
+.notif-status {
+  margin-top: 12px; padding: 10px 14px;
+  border-radius: var(--radius-sm); font-size: 13px; text-align: center;
+}
+.notif-status.on { background: #1a3a1a; color: #52b788; border: 1px solid #52b788; }
+.notif-status.off { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+.timer-section { margin-top: 20px; }
+.timer-display {
+  font-family: 'Space Mono', monospace; font-size: 60px;
+  font-weight: 700; text-align: center; color: var(--text);
+  letter-spacing: -3px; margin: 16px 0;
+  transition: color 0.3s;
+}
+.timer-display.running { color: var(--accent2); }
+.timer-display.done-t { color: #52b788; }
+.timer-btns { display: flex; gap: 10px; }
+.timer-btns button {
+  flex: 1; padding: 14px;
+  border-radius: var(--radius-sm);
+  font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; border: 1px solid;
+}
+.btn-start { background: linear-gradient(135deg, #3d2a00, #5c3d00); border-color: var(--accent); color: var(--accent); }
+.btn-reset { background: var(--surface2); border-color: var(--border); color: var(--muted); }
+.timer-btns button:active { transform: scale(0.97); }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  background: rgba(26,26,46,0.96); backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  display: flex;
+}
+.bnav-item {
+  flex: 1; padding: 10px 4px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer; transition: all 0.2s;
+}
+.bnav-icon { font-size: 22px; }
+.bnav-label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 0.03em; }
+.bnav-item.active .bnav-label { color: var(--accent); }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 30px; padding: 10px 20px;
+  font-size: 13px; font-weight: 600;
+  opacity: 0; transition: all 0.3s; z-index: 500; white-space: nowrap;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── ANIM ── */
+@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.page.active > * { animation: fadeIn 0.3s ease both; }
+.page.active > *:nth-child(1) { animation-delay: 0s; }
+.page.active > *:nth-child(2) { animation-delay: 0.05s; }
+.page.active > *:nth-child(3) { animation-delay: 0.1s; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Sketch<span>Log</span></div>
+  <div class="streak-badge">🔥 <span id="streakNum">0</span> hari streak</div>
+</header>
+
+<!-- bottom nav -->
+<nav class="bottom-nav">
+  <div class="bnav-item active" onclick="showPage('today')">
+    <div class="bnav-icon">📋</div>
+    <div class="bnav-label">Hari Ini</div>
+  </div>
+  <div class="bnav-item" onclick="showPage('calendar')">
+    <div class="bnav-icon">📅</div>
+    <div class="bnav-label">Kalender</div>
+  </div>
+  <div class="bnav-item" onclick="showPage('progress')">
+    <div class="bnav-icon">📊</div>
+    <div class="bnav-label">Progress</div>
+  </div>
+  <div class="bnav-item" onclick="showPage('reminder')">
+    <div class="bnav-icon">⏰</div>
+    <div class="bnav-label">Reminder</div>
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════ PAGE: TODAY -->
+<div class="page active" id="page-today"></div>
+
+<!-- ═══════════════════════════════════════════════ PAGE: CALENDAR -->
+<div class="page" id="page-calendar"></div>
+
+<!-- ═══════════════════════════════════════════════ PAGE: PROGRESS -->
+<div class="page" id="page-progress"></div>
+
+<!-- ═══════════════════════════════════════════════ PAGE: REMINDER -->
+<div class="page" id="page-reminder">
+  <p class="section-title">Atur Jam Latihan Harian</p>
+  <div class="reminder-card">
+    <div class="time-inputs">
+      <input type="number" id="rHour" min="0" max="23" value="19" placeholder="19">
+      <div class="time-sep">:</div>
+      <input type="number" id="rMin" min="0" max="59" value="0" placeholder="00">
+    </div>
+    <div class="time-display" id="timePreview">19:00</div>
+    <button class="toggle-btn" id="reminderToggle" onclick="toggleReminder()">🔔 Aktifkan Pengingat</button>
+    <div class="notif-status off" id="notifStatus">Pengingat belum aktif</div>
+  </div>
+
+  <p class="section-title">Timer Latihan</p>
+  <div class="reminder-card timer-section">
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button onclick="setDuration(30)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">30 menit</button>
+      <button onclick="setDuration(45)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">45 menit</button>
+      <button onclick="setDuration(60)" style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">60 menit</button>
+    </div>
+    <div class="timer-display" id="timerDisplay">30:00</div>
+    <div class="timer-btns">
+      <button class="btn-start" id="timerStartBtn" onclick="timerToggle()">▶ Mulai</button>
+      <button class="btn-reset" onclick="timerReset()">↺ Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════ DATA ═══════════════════════
+const DAYS = [
+  {w:1,title:"Garis & Tekanan Pensil",cat:"Fondasi & Teknik",goal:"Melatih kontrol tangan dan konsistensi goresan pensil",
+   steps:["Gambar 50 garis horizontal lurus tanpa penggaris — fokus konsistensi kiri ke kanan","Gambar 50 garis vertikal dari atas ke bawah","Gambar 50 garis diagonal 45 derajat","Buat gradient strip: tekanan ringan di kiri, tambah ke kanan hingga sangat gelap","Latihan hatching dasar: kotak 3x3 cm, isi dengan garis paralel rapat","Ulangi latihan garis dengan mata setengah terpejam untuk mengurangi kontrol berlebih"],
+   tip:"Gerakkan tangan dari siku/bahu, BUKAN dari jari. Jari hanya memegang pensil. Bayangkan sedang menari di atas kertas.",
+   yt:[["How to Draw Straight Lines","https://youtu.be/evdxbHjDVqI"],["Line Weight & Pressure - Proko","https://youtu.be/7GmCPnuHVlQ"],["Fundamental Drawing Skills","https://youtu.be/Qj1FK9AxJZM"]]},
+  {w:1,title:"Lingkaran & Elips",cat:"Fondasi & Teknik",goal:"Menguasai bentuk oval sebagai dasar objek 3D",
+   steps:["Putar kertas 90 derajat, gambar 20 lingkaran dari gerakan bahu (bukan jari)","Gambar elips dari berbagai sudut: sangat gepeng, setengah gepeng, hampir bulat","Gambar silinder: 2 elips paralel, hubungkan dengan garis lurus","Gambar bola: lingkaran + garis kontur melengkung di tengah","Tambahkan arsiran sederhana pada bola — area gelap berlawanan sumber cahaya","Gambar 5 objek silindris: botol minum, kaleng, gelas"],
+   tip:"Ghost drawing: sebelum menarik garis lingkaran, gerakkan pensil di udara beberapa kali mengikuti jalur. Setelah otot 'hafal', baru taruh pensil ke kertas.",
+   yt:[["How to Draw Circles and Ellipses","https://youtu.be/IfFLJd0_kgE"],["Drawing Cylinders and Spheres","https://youtu.be/2gHcFYpfQbA"],["Basic Forms Tutorial - Ctrl+Paint","https://youtu.be/Ykq_9JhVFxU"]]},
+  {w:1,title:"Kotak & Perspektif Dasar",cat:"Fondasi & Teknik",goal:"Memahami cara kerja ruang 3D pada bidang 2D",
+   steps:["Gambar garis horizon di tengah kertas (eye level)","Tandai 1 titik di tengah sebagai vanishing point","Gambar kotak depan, tarik garis dari pojok ke vanishing point","Tutup sisi belakang — selesai! Ulangi 5 kali berbeda ukuran","2-point perspective: 2 vanishing point di ujung kiri-kanan horizon","Gambar 3 kotak 2-point dari sudut berbeda","Tantangan: gambar meja sederhana dalam 1-point perspective"],
+   tip:"Semua perspektif bermula dari EYE LEVEL. Pahami ini dulu sebelum menghafal aturan teknis lainnya.",
+   yt:[["1-Point Perspective Made Easy","https://youtu.be/nAlCyQqEZSU"],["2-Point Perspective for Beginners","https://youtu.be/kZB_HNxhG8U"],["Understanding Perspective - Proko","https://youtu.be/Y-j7ZFT4p9o"]]},
+  {w:1,title:"Tekstur & Hatching",cat:"Fondasi & Teknik",goal:"Teknik arsiran untuk menciptakan gelap-terang",
+   steps:["Buat kotak 2x2 cm, isi hatching paralel sangat rapat (gelap)","Buat kotak lain dengan hatching renggang (terang)","Buat gradient strip hatching: renggang ke rapat","Cross-hatching: lapisan pertama horizontal, lapisan kedua diagonal 45°","Stippling: titik rapat untuk gelap, jarang untuk terang","Gambar kubus dengan 3 sisi berbeda value","Tambahkan cast shadow di bawah kubus"],
+   tip:"Jangan menekan keras untuk area gelap dengan 1 lapisan. Buat 3-4 lapisan ringan yang ditumpuk. Teknik ini disebut 'building up value'.",
+   yt:[["Pencil Hatching Techniques - Alphonso Dunn","https://youtu.be/a2Jh5aPYF58"],["How to Shade with Pencil - Mark Crilley","https://youtu.be/TuKDJO0eSCk"],["Pencil Shading for Beginners","https://youtu.be/xB2UCQIQ7tI"]]},
+  {w:1,title:"Bentuk Organik",cat:"Fondasi & Teknik",goal:"Menggambar bentuk tidak geometris dari alam",
+   steps:["Kumpulkan 3 daun nyata dari sekitarmu","Gambar silhouette/garis luar daun pertama dengan 1 garis menerus","Tambahkan urat daun utama, lalu urat sekunder","Arsir ringan mengikuti bentuk daun (contour hatching)","Gambar 2-3 batu dengan permukaan kasar dari imajinasi","Gambar tanganmu sendiri dalam posisi istirahat — amati 2 menit sebelum mulai","Review semua gambar minggu ini, catat apa yang terasa paling sulit"],
+   tip:"Habiskan 60% waktu untuk MELIHAT, 40% untuk menggambar. Mata yang terlatih jauh lebih penting dari tangan yang cepat.",
+   yt:[["Drawing Organic Shapes - Proko","https://youtu.be/2VYbPGSUaKI"],["How to Draw Leaves","https://youtu.be/wdbKRHlDFBg"],["Drawing Hands - Proko","https://youtu.be/3TReR7ds83Y"]]},
+  {w:1,title:"Istirahat Aktif",cat:"Istirahat Aktif",goal:"Pemulihan fisik & mental sambil tetap terinspirasi",
+   steps:["Amati 5 objek di sekitarmu — bayangkan cara menggambarnya tanpa menyentuh pensil","Buka Pinterest/Instagram, cari 'pencil sketch' atau 'pencil drawing'","Simpan 10-15 gambar yang resonan denganmu","Tulis di jurnal: apa yang paling sulit minggu ini?","Istirahatkan tangan — lakukan peregangan jari dan pergelangan","Opsional: tonton 1 video speed drawing untuk inspirasi"],
+   tip:"Simpan semua gambar minggu ini di satu tempat. Progress yang terdokumentasi adalah motivasi terkuat.",
+   yt:[["Sketchbook Tour - Inspiration","https://youtu.be/yBFl4M8GHGU"],["How to Stay Motivated to Draw","https://youtu.be/SIBESRnNlK0"]]},
+  {w:1,title:"Refleksi & Warm-Up",cat:"Fondasi & Teknik",goal:"Review minggu pertama dan bangun momentum ke minggu 2",
+   steps:["Warm-up 10 menit: garis, lingkaran, kotak bebas tanpa target","Gambar 5 objek sederhana: botol, cangkir, buku, sendok, kunci","Foto gambar-gambar ini bersama foto gambar hari 1","Bandingkan: apa yang sudah lebih baik?","Tuliskan 3 hal yang ingin diperbaiki di minggu 2","Set jadwal tetap untuk 3 minggu berikutnya"],
+   tip:"Progress dalam menggambar bersifat non-linear. Dokumen adalah bukti obyektif yang lebih akurat dari perasaan.",
+   yt:[["Drawing Warm-Up Exercises","https://youtu.be/evdxbHjDVqI"],["How to Evaluate Your Own Art","https://youtu.be/8gP0IQYba2k"]]},
+
+  {w:2,title:"Basic Shapes → Objek Nyata",cat:"Bentuk & Proporsi",goal:"Menggunakan geometris sebagai kerangka objek kompleks",
+   steps:["Analisis kaleng minuman: silinder atas + silinder bawah + elips atas-bawah","Gambar kaleng dengan panduan geometris dulu (garis tipis), baru pertebal kontur","Analisis buku: kotak tipis + sisi tebal + detail binding","Gambar buku dalam 3 posisi: terbuka, tertutup berdiri, tertutup berbaring","Gambar lampu meja: kotak + kerucut + silinder kecil","Gambar sepatu dari referensi foto: mulai dari kotak dasar","Ghost drawing semua objek: gambar ringan dahulu, pertebal setelah bentuk benar"],
+   tip:"Seniman tidak menggambar apa yang mereka LIHAT, tapi apa yang mereka PAHAMI. Pahami struktur 3D, bisa menggambar dari sudut manapun.",
+   yt:[["Draw Anything with Basic Shapes","https://youtu.be/1r0sFbpFq5s"],["The Block-In Method","https://youtu.be/BiGB_7pCGxg"],["Drawing from Basic Forms","https://youtu.be/jOBVjGHvjIs"]]},
+  {w:2,title:"Proporsi Wajah Dasar",cat:"Bentuk & Proporsi",goal:"Mempelajari aturan matematika proporsi wajah manusia",
+   steps:["Gambar oval kepala — bagi secara horizontal tepat di tengah","Letak 2 mata di garis tengah — ada ruang 1 mata antara keduanya","Hidung: setengah jarak dari garis mata ke dagu","Mulut: sepertiga jarak dari hidung ke dagu","Telinga: dari alis sampai ujung hidung (vertikal)","Gambar 5 wajah front view menggunakan panduan ini","Gambar 3 wajah 3/4 view — lebih menantang tapi sangat berguna","Bandingkan dengan foto wajah sendiri — ukur proporsinya"],
+   tip:"Pemula selalu menggambar mata terlalu tinggi. Selalu gunakan panduan terlebih dahulu, kepercayaan proporsional dibangun dari kebiasaan.",
+   yt:[["How to Draw a Face - Proko","https://youtu.be/wAMfFT5GSNY"],["Face Proportions Tutorial","https://youtu.be/0_Aqb-N79jY"],["Drawing the Head - Loomis Method","https://youtu.be/Jz_D-TcxCak"]]},
+  {w:2,title:"Proporsi Tubuh Dasar",cat:"Bentuk & Proporsi",goal:"Memahami sistem proporsi tubuh manusia dewasa",
+   steps:["Gambar kotak kepala di atas kertas","Buat 7 kotak di bawahnya dengan ukuran sama — ini tinggi total tubuh","Tandai landmark: bahu (1-2), pinggul (3-4), lutut (5-6), telapak kaki (7)","Gambar stick figure mengikuti panduan landmark","Beri 'daging': torso sebagai trapezoid, paha & betis sebagai silinder","Gambar 3 pose berdiri berbeda dengan sistem 7 kepala","Gambar 2 pose duduk — perhatikan paha terlipat"],
+   tip:"Pria: bahu lebih lebar dari pinggul. Wanita: pinggul lebih lebar dari bahu. Buku Andrew Loomis tersedia gratis secara legal online.",
+   yt:[["How to Draw the Body - Proko","https://youtu.be/74HR59yFZ7Y"],["Figure Drawing Proportions","https://youtu.be/1WNBmQDCrJk"],["Body Proportions for Beginners","https://youtu.be/I2m0HFX7VGo"]]},
+  {w:2,title:"Gesture Drawing",cat:"Bentuk & Proporsi",goal:"Menangkap gerakan dan energi pose manusia dengan cepat",
+   steps:["Buka line-of-action.com atau referensi pose","Set timer 30 detik — gambar 10 pose, tangkap 'line of action'","Set timer 1 menit — gambar 5 pose, mulai tambah struktur","Set timer 2 menit — gambar 3 pose, bisa lebih detail","Fokus pada garis tulang belakang yang melengkung","Gunakan garis besar mengalir, jangan detail kecil","Review: mana yang paling 'terasa' gerakannya?"],
+   tip:"Gesture bukan tentang kemiripan — tapi tentang PERASAAN gerakan. Berlebihkan (exaggerate) gerakannya sedikit untuk hasil yang lebih hidup.",
+   yt:[["Gesture Drawing - Proko (WAJIB!)","https://youtu.be/74HR59yFZ7Y"],["How to Draw Gesture - Vilppu","https://youtu.be/p6aEFXmFozY"],["Line of Action (website gratis)","https://line-of-action.com"]]},
+  {w:2,title:"Perspektif Objek di Ruang",cat:"Bentuk & Proporsi",goal:"Menempatkan beberapa objek dalam perspektif konsisten",
+   steps:["Gambar garis horizon dan 1 vanishing point","Gambar meja dalam perspektif 1 titik","Tempatkan kursi di belakang meja — kaki kursi ke vanishing point yang sama","Tambahkan buku di atas meja mengikuti perspektif","Gambar sudut kamarmu dalam 2-point perspective","Tambahkan furnitur minimal: tempat tidur atau meja","Sketsa bebas satu sudut ruangan lain di rumahmu"],
+   tip:"Ketika perspektif terasa salah: tarik garis dari tepi-tepi objek ke arah horizon — mereka harus bertemu di titik yang sama.",
+   yt:[["Drawing Interior Perspective","https://youtu.be/9TxouDKIa7k"],["Room in Perspective","https://youtu.be/Y-j7ZFT4p9o"],["One Point Perspective Room","https://youtu.be/FVKxThVFgqA"]]},
+  {w:2,title:"Istirahat Aktif",cat:"Istirahat Aktif",goal:"Isi energi untuk paruh kedua perjalanan belajar",
+   steps:["Tonton 1 video tutorial yang menarik bagimu","Lihat karya 1-2 seniman pensil favoritmu, identifikasi teknik spesifik mereka","Tulis di jurnal: apa yang paling membangkitkan semangatmu?","Istirahatkan tangan, tetap terinspirasi","Opsional: bergabunglah komunitas online (r/learnart, Discord seni)"],
+   tip:"Cari 'accountability partner' — teman yang juga belajar menggambar. Kemajuan bersama jauh lebih menyenangkan.",
+   yt:[["How to Stay Motivated","https://youtu.be/SIBESRnNlK0"],["Artist Sketchbook Inspiration","https://youtu.be/yBFl4M8GHGU"]]},
+  {w:2,title:"Mini Project: Dari Referensi",cat:"Bentuk & Proporsi",goal:"Menerapkan semua teknik Minggu 2 dalam satu gambar penuh",
+   steps:["Pilih 1 objek menarik (sepatu, tas, jam, dll)","Habiskan 5 menit hanya MELIHAT — amati proporsi, sudut, tekstur","Mulai dengan bentuk dasar paling sederhana (block-in)","Ukur proporsi secara visual: seberapa lebar vs tinggi?","Gambar selama 30-40 menit tanpa banyak menghapus","Tambahkan value/arsiran di 10 menit terakhir","Foto hasil dan dokumentasikan"],
+   tip:"Teknik mengukur: pegang pensil vertikal di depanmu dengan lengan lurus, tutup satu mata, gunakan jempol sebagai marker. Teknik seniman tradisional sejak berabad-abad lalu.",
+   yt:[["How to Draw from Reference","https://youtu.be/xFqecEtdGZ0"],["Observational Drawing Tips","https://youtu.be/uXoh_J0RVRU"],["Drawing from Life vs Photo","https://youtu.be/Af5MoJpFBNg"]]},
+
+  {w:3,title:"Observasi & Contour Drawing",cat:"Observasi & Komposisi",goal:"Melatih koneksi mata-tangan melalui teknik menggambar kontur",
+   steps:["Pilih objek sederhana (tangan, cangkir, sepatu)","Blind contour: gambar garis luar objek TANPA melihat kertas selama 5 menit","Lihat hasilnya — apakah ada sesuatu yang 'benar'?","Modified contour: sesekali lihat kertas (setiap 10-15 detik)","Gambar 3 objek dengan modified contour","Gambar objek yang sama dengan cara normal — rasakan perbedaannya","Fokus memperlambat tangan mengikuti kecepatan mata"],
+   tip:"Jika hasilnya sangat aneh, itu BAGUS — kamu melakukannya dengan benar. Tujuannya bukan hasil yang indah, tapi melatih cara melihat.",
+   yt:[["Blind Contour Drawing - Proko","https://youtu.be/KWfKmOaJFGc"],["Contour Drawing Techniques","https://youtu.be/j2AiM5jGm1Q"],["How to See Like an Artist","https://youtu.be/RWGfNBQkEeQ"]]},
+  {w:3,title:"Value & Pencahayaan",cat:"Observasi & Komposisi",goal:"Memahami dan menerapkan sistem gelap-terang untuk kedalaman",
+   steps:["Buat value scale: 5 kotak dari putih kertas sampai hitam maksimal","Pilih 1 objek bulat (jeruk, apel, bola)","Tentukan sumber cahaya: dari kiri atas misalnya","Identifikasi 5 area: highlight, light, mid-tone, shadow, cast shadow","Arsir dengan hatching mengikuti 5 value tersebut","Gambar 2 objek berbeda dengan value study yang sama","Foto gambar, convert ke grayscale di HP — apakah value sudah benar?"],
+   tip:"Squinting test: pejamkan mata setengah saat melihat objek dan gambarmu. Jika gambar dan objek terlihat 'sama', value kamu sudah benar.",
+   yt:[["Understanding Value in Drawing","https://youtu.be/iMDTfMCHYgs"],["How to Shade - Light and Shadow","https://youtu.be/b-6HnqoKe_o"],["Value Scale Tutorial","https://youtu.be/9L5VFgHMvio"]]},
+  {w:3,title:"Komposisi Dasar",cat:"Observasi & Komposisi",goal:"Cara menyusun elemen visual agar gambar enak dilihat",
+   steps:["Rule of thirds: bagi kertas 3x3, letakkan subjek di titik perpotongan","Gambar 3 thumbnail (3x4 cm) dengan subjek di posisi berbeda","Pilih komposisi terbaik dari thumbnail","Negative space: gambar bentuk RUANG di SEKITAR objek","Experiment portrait vs landscape orientation","Tambahkan foreground, midground, background untuk kedalaman","Gambar 1 komposisi final menggunakan prinsip di atas"],
+   tip:"Thumbnail planning adalah kebiasaan terpenting seniman profesional. Lebih mudah mengubah komposisi pada thumbnail 3 cm daripada gambar 30 cm yang sudah setengah jadi.",
+   yt:[["Composition for Beginners - Proko","https://youtu.be/O8i7OKbWmRM"],["Rule of Thirds Explained","https://youtu.be/VArISvgOvQ0"],["Negative Space Drawing","https://youtu.be/qkTBSb5HQWM"]]},
+  {w:3,title:"Still Life (Alam Benda)",cat:"Observasi & Komposisi",goal:"Menerapkan semua skill observasi dalam menggambar susunan objek nyata",
+   steps:["Susun 3 objek berbeda ukuran di bawah lampu dari satu arah","Gambar thumbnail komposisi: coba 2-3 susunan berbeda","Pilih susunan terbaik dan mulai block-in semua objek dulu","Periksa proporsi: apakah objek terbesar benar-benar lebih besar?","Gambar garis kontur dengan lebih pasti","Tentukan value setiap area: mana paling terang, mana paling gelap?","Arsir dengan hatching, build up value dari terang ke gelap","Tambahkan cast shadow di permukaan tempat objek berdiri"],
+   tip:"Jangan menggambar objek satu per satu secara sequential. Gambar SEMUA objek bersamaan, layer per layer. Ini menciptakan konsistensi.",
+   yt:[["Still Life Drawing Tutorial","https://youtu.be/cVa7aVQiGOo"],["How to Draw Still Life","https://youtu.be/RQSSrE0ZOhw"],["Still Life Composition Tips","https://youtu.be/mIAf3TRFOVQ"]]},
+  {w:3,title:"Tekstur: Kayu, Batu, Kain",cat:"Observasi & Komposisi",goal:"Cara merepresentasikan berbagai tekstur permukaan",
+   steps:["Cari foto atau objek bertekstur kayu","Amati: serat kayu adalah garis paralel tidak sempurna + simpul bulat","Gambar tekstur kayu: garis paralel sedikit bergelombang + simpul oval","Tekstur batu: tidak beraturan, bidang-bidang flat dengan tepi tajam","Gambar batu dengan hatching mengikuti bidang permukaannya","Tekstur kain: lipatan mengikuti gravitasi dan titik pegangan","Gambar kain yang tergantung atau terlipat","Gabungkan 2 tekstur dalam 1 gambar"],
+   tip:"Untuk tekstur, jangan gambar setiap detail — gambar enough untuk memberikan ilusi. Pada area fokus, tambahkan detail; area non-fokus, kurangi.",
+   yt:[["Drawing Wood Texture","https://youtu.be/KKNrQ9vBpdI"],["How to Draw Fabric Folds - Proko","https://youtu.be/9ZOCjnVtavk"],["Drawing Rock Texture with Pencil","https://youtu.be/2r8bU0Qm0dk"]]},
+  {w:3,title:"Istirahat Aktif",cat:"Istirahat Aktif",goal:"Persiapan mental untuk minggu eksplorasi dan kreasi bebas",
+   steps:["Kumpulkan gambar semua karyamu selama 3 minggu","Perhatikan perkembangan dari hari 1","Cari 3-5 seniman pensil yang gaya kerjanya membuatmu bersemangat","Tulis: elemen artistik apa yang paling menarik bagimu?","Rencanakan tema untuk minggu 4","Siapkan kertas dan pensil untuk besok"],
+   tip:"Di tahap ini, banyak orang merasa 'tahu cukup untuk sadar betapa banyak yang belum diketahui'. Ini adalah TANDA PROGRESS, bukan kemunduran.",
+   yt:[["Finding Your Art Style","https://youtu.be/yBFl4M8GHGU"],["The Art Learning Journey","https://youtu.be/SIBESRnNlK0"]]},
+  {w:3,title:"Mini Project: Outdoor Sketch",cat:"Observasi & Komposisi",goal:"Menerapkan semua teknik observasi dalam menggambar lingkungan nyata",
+   steps:["Temukan sudut menarik: dari jendela, balkon, atau luar ruangan","Luangkan 5 menit mengamati scene: apa subjek utamanya?","Gambar thumbnail komposisi 2 menit","Mulai block-in besar: horizon, struktur utama, titik berat","Pilih elemen paling penting — jangan coba gambar semua detail","Beri value dan arsiran pada area yang jadi fokus","Selesaikan dalam 30-45 menit — jangan overthink","Foto dan bandingkan dengan scene asli"],
+   tip:"Urban Sketchers (urbansketchers.org) adalah komunitas global yang sangat supportif. Rutin mengadakan sketch walk bersama.",
+   yt:[["Urban Sketching for Beginners","https://youtu.be/LxAUlxrjxnc"],["How to Sketch Outdoors","https://youtu.be/p_mkp3Hv9ys"],["Quick Outdoor Sketching Tips","https://youtu.be/M30vY1Vj9ko"]]},
+
+  {w:4,title:"Eksplorasi: Gaya Kasar & Ekspresif",cat:"Eksplorasi & Gaya",goal:"Bereksperimen dengan goresan bebas, berani, dan ekspresif",
+   steps:["Gunakan pensil 4B atau 6B — lebih gelap dan ekspresif","Gambar 5 objek dengan goresan cepat, tegas, tidak ragu-ragu (30 detik/objek)","Gunakan SISI pensil (bukan ujung) untuk goresan lebar dan tebal","Gambar objek dengan cross-contour yang exaggerated","'Automatic drawing': gambar tanpa berpikir, ikuti insting tangan 3 menit","Gambar ulang objek favoritmu tapi sekasar mungkin","Pilih mana yang terasa paling 'kamu'"],
+   tip:"Gaya 'kasar' bukan berarti tidak terkontrol — ini tentang keputusan yang terlihat spontan. Seperti jazz: ada aturan mendalam di balik improvisasi bebas.",
+   yt:[["Expressive Drawing - Proko","https://youtu.be/5-x2kMGYkKs"],["Loose Sketching Techniques","https://youtu.be/4l_K7dEFOp0"],["Gestural Drawing Explained","https://youtu.be/GjNEeJH-s7c"]]},
+  {w:4,title:"Eksplorasi: Detail & Realistis",cat:"Eksplorasi & Gaya",goal:"Pendekatan sabar dan teliti dalam menggambar",
+   steps:["Pilih 1 objek kecil menarik: kunci, koin lama, kancing, daun kering","Amati selama 3 menit — perhatikan tekstur, refleksi, bayangan kecil","Gambar garis luar dengan sangat hati-hati dan tepat","Bangun value secara bertahap: terang ke gelap","Gunakan blending (gosok dengan jari/tissue) untuk transisi halus","Tambahkan detail tekstur pada area fokus","Habiskan penuh 40-50 menit untuk 1 objek","Bandingkan dengan gaya kasar kemarin"],
+   tip:"Gunakan range H sampai 4B: H untuk garis halus awal, B untuk value sedang, 2B-4B untuk area paling gelap. Kneaded eraser untuk highlight.",
+   yt:[["Hyper Realistic Drawing Tutorial","https://youtu.be/wPAUZnr60M4"],["Realistic Pencil Drawing Techniques","https://youtu.be/1iXULrH1K0Y"],["Drawing Realistic Textures","https://youtu.be/aEtFzpLGpco"]]},
+  {w:4,title:"Eksplorasi: Ilustrasi Simpel",cat:"Eksplorasi & Gaya",goal:"Penyederhanaan bentuk untuk gaya ilustrasi dan kartun",
+   steps:["Gambar wajah dengan hanya 3 elemen: lingkaran kepala, 2 titik mata, 1 garis mulut","Tambahkan 1 elemen per iterasi tanpa detail berlebih","Buat 5 karakter simpel dengan 'personality' berbeda dari silhouette saja","Gambar ekspresi berbeda hanya dengan mengubah alis dan sudut mulut","Buat mini strip komik 3 panel dengan karakter simpel","Gambar objek sehari-hari dalam gaya flat/simpel","Buat 'logo' dari hewan atau objek sesimpel mungkin"],
+   tip:"Gaya personal lahir dari keputusan simplifikasi yang konsisten. Identifikasi: apa yang seniman favoritmu SEDERHANAKAN? Apa yang mereka PERTAHANKAN?",
+   yt:[["How to Create a Character Design","https://youtu.be/Z5ADv-8ORWQ"],["Simple Character Design for Beginners","https://youtu.be/Fj9FnRSIEb8"],["Cartoon Drawing Basics","https://youtu.be/OJMhRY_HVSI"]]},
+  {w:4,title:"Sketchbook Page Bertema",cat:"Eksplorasi & Gaya",goal:"Mengisi satu halaman penuh dengan gambar bertema tertentu",
+   steps:["Pilih tema: makanan favorit, benda di meja, tanaman, kendaraan, dll","Rencanakan ukuran gambar: beberapa besar, sedang, kecil","Sketsa layout kasar di thumbnail 5x7 cm dulu","Mulai dari yang terbesar/paling penting","Isi ruang kosong dengan gambar lebih kecil dan detail","Variasikan sudut pandang: front view, side view, 3/4 view","Opsional: tambahkan label tulisan tangan","Foto dan perhatikan keseimbangan ruang"],
+   tip:"Untuk page yang menarik: variasikan ukuran secara dramatis, pastikan ada 1 gambar yang jauh lebih dominan, biarkan beberapa gambar saling overlapping.",
+   yt:[["Sketchbook Page Ideas","https://youtu.be/Nm_pQGnLpyE"],["Fill a Sketchbook Page","https://youtu.be/V0lfqFDPvmY"],["Sketchbook Tour & Tips","https://youtu.be/vIJJX6KVQLE"]]},
+  {w:4,title:"Gambar Bebas: Ikuti Intuisi",cat:"Eksplorasi & Gaya",goal:"Berkreasi bebas tanpa brief, aturan, atau target tertentu",
+   steps:["Tidak ada brief — gambar apapun yang terlintas di pikiran","Jika bingung, mulai dengan 1 bentuk acak dan lihat ke mana arahnya","Boleh kombinasikan semua teknik yang sudah dipelajari","Boleh jelek, eksperimental, tidak selesai","Boleh menggambar lebih dari 60 menit jika flow-nya datang","Jangan edit atau hapus terlalu banyak","Di akhir, tulis 2-3 kata yang mendeskripsikan perasaan hari ini"],
+   tip:"Blank page syndrome: mulai dengan doodle di pojok — garis zigzag, spiral, apapun. Setelah 30 detik bergerak, ide datang sendiri.",
+   yt:[["How to Deal with Creative Block","https://youtu.be/gHdBkAlf30U"],["Doodling for Creativity","https://youtu.be/lxFUiKE2tMM"],["Artist's Block Solutions","https://youtu.be/SIBESRnNlK0"]]},
+  {w:4,title:"Istirahat Aktif",cat:"Istirahat Aktif",goal:"Refleksi mendalam dan persiapan final project",
+   steps:["Kumpulkan semua gambar 1 bulan — foto atau fisik","Urutkan dari hari 1 sampai sekarang dan lihat berurutan","Tulis: skill apa yang paling berkembang? Apa yang masih perlu dilatih?","Posting 1 gambar favoritmu jika mau (Instagram, r/learnart)","Rencanakan final project: objek atau scene apa yang mau digambar?","Rencanakan bulan kedua: area mana yang ingin diperdalam?"],
+   tip:"Konsistensi 30 hari adalah achievement luar biasa. Kebanyakan orang tidak sampai minggu kedua. Kamu sudah membangun kebiasaan — aset lebih berharga dari bakat.",
+   yt:[["How to Review Your Own Art","https://youtu.be/8gP0IQYba2k"],["What Happens After 30 Days of Drawing","https://youtu.be/yBFl4M8GHGU"]]},
+  {w:4,title:"Bonus: Anatomi Tangan",cat:"Eksplorasi & Gaya",goal:"Mendalami salah satu bagian paling sulit: tangan manusia",
+   steps:["Amati tanganmu sendiri selama 3 menit dalam berbagai posisi","Gambar telapak tangan sebagai bentuk dasar: persegi panjang + 4 silinder jari","Gambar tangan dalam posisi terbuka (front view)","Gambar tangan dalam posisi menggenggam","Gambar tangan dari referensi foto 3 pose berbeda","Fokus pada proporsi: jari tengah ≈ panjang telapak","Jangan detail kuku dulu — prioritaskan proporsi dan bentuk besar"],
+   tip:"Latihan tangan 5 menit sehari memberikan hasil dramatis. Tangan non-dominanmu adalah model yang selalu tersedia gratis.",
+   yt:[["How to Draw Hands - Proko (TERBAIK!)","https://youtu.be/3TReR7ds83Y"],["Drawing Hands - Mark Crilley","https://youtu.be/5KlA1RxSmXY"],["Hand Anatomy Simplified","https://youtu.be/K6UPnrgbj40"]]},
+  {w:4,title:"Bonus: Rencana Bulan 2",cat:"Istirahat Aktif",goal:"Merencanakan perjalanan belajar menggambar jangka panjang",
+   steps:["Review semua gambar 30 hari — identifikasi 3 weakness utama","Pilih 1 fokus untuk Bulan 2 (anatomi, perspektif arsitektur, atau portrait)","Cari resource untuk fokus tersebut (buku, YouTube, course)","Set jadwal latihan yang bisa dipertahankan","Cari komunitas atau accountability partner untuk Bulan 2","Rayakan pencapaian 30 hari! Kamu luar biasa 🎉"],
+   tip:"Resource terbaik: Proko.com, Ctrl+Paint.com, buku 'Drawing on the Right Side of the Brain' oleh Betty Edwards (klasik wajib baca).",
+   yt:[["How to Improve at Drawing Faster","https://youtu.be/Gjzq_8EY4g0"],["Your Art Learning Path","https://youtu.be/YQs5g0P4pNE"],["1 Year of Daily Drawing Results","https://youtu.be/LRcRPnHHAqU"]]},
+];
+
+const CAT_COLORS = {
+  "Fondasi & Teknik": {bg:"var(--week1)",c:"var(--week1b)"},
+  "Bentuk & Proporsi": {bg:"var(--week2)",c:"var(--week2b)"},
+  "Observasi & Komposisi": {bg:"var(--week3)",c:"var(--week3b)"},
+  "Eksplorasi & Gaya": {bg:"var(--week4)",c:"var(--week4b)"},
+  "Istirahat Aktif": {bg:"var(--rest)",c:"var(--restb)"},
+};
+const WEEK_LABELS = ["","Minggu 1 — Fondasi & Teknik","Minggu 2 — Bentuk & Proporsi","Minggu 3 — Observasi & Komposisi","Minggu 4 — Eksplorasi & Gaya"];
+const WEEK_COLORS = {1:{bg:"var(--week1)",c:"var(--week1b)"},2:{bg:"var(--week2)",c:"var(--week2b)"},3:{bg:"var(--week3)",c:"var(--week3b)"},4:{bg:"var(--week4)",c:"var(--week4b)"}};
+
+// ═══════════════════════ STATE ═══════════════════════
+function loadState() {
+  try { return JSON.parse(localStorage.getItem('sketchlog') || '{}'); } catch { return {}; }
+}
+function saveState(s) { localStorage.setItem('sketchlog', JSON.stringify(s)); }
+
+let state = loadState();
+if (!state.done) state.done = {};
+if (!state.startDate) { state.startDate = new Date().toISOString().slice(0,10); saveState(state); }
+
+function isDone(dayIdx) { return !!state.done[dayIdx]; }
+function markDone(dayIdx, val) {
+  if (val) state.done[dayIdx] = new Date().toISOString();
+  else delete state.done[dayIdx];
+  saveState(state);
+}
+
+function getTodayIdx() {
+  const start = new Date(state.startDate);
+  const now = new Date();
+  const diff = Math.floor((now - start) / 86400000);
+  return Math.max(0, Math.min(diff, 29));
+}
+
+function getStreak() {
+  let streak = 0;
+  const today = getTodayIdx();
+  for (let i = today; i >= 0; i--) {
+    if (isDone(i)) streak++;
+    else break;
+  }
+  return streak;
+}
+
+// ═══════════════════════ NAV ═══════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const map = {today:0,calendar:1,progress:2,reminder:3};
+  document.querySelectorAll('.bnav-item')[map[id]].classList.add('active');
+  if (id === 'today') renderToday();
+  if (id === 'calendar') renderCalendar();
+  if (id === 'progress') renderProgress();
+}
+
+// ═══════════════════════ TODAY ═══════════════════════
+function renderToday() {
+  const idx = getTodayIdx();
+  const d = DAYS[idx];
+  const done = isDone(idx);
+  const cc = CAT_COLORS[d.cat];
+
+  const stepsHTML = d.steps.map((s,i) => `
+    <div class="step-item">
+      <div class="step-num">${i+1}</div>
+      <div class="step-text">${s}</div>
+    </div>`).join('');
+
+  const ytHTML = d.yt.map(([name,url]) => `
+    <a class="yt-item" href="${url}" target="_blank" rel="noopener">
+      <div class="yt-icon">▶</div>
+      <div class="yt-text">${name}</div>
+    </a>`).join('');
+
+  const doneBtnTxt = done ? '✅ Sudah Selesai Hari Ini!' : '✓ Tandai Selesai Hari Ini';
+
+  document.getElementById('page-today').innerHTML = `
+    <div class="today-hero">
+      <div class="day-label">Hari ${idx+1} dari 30</div>
+      <div class="day-title">${d.title}</div>
+      <span class="day-cat" style="background:${cc.bg};color:${cc.c}">${d.cat}</span>
+      <div class="day-goal">${d.goal}</div>
+      <button class="done-btn ${done?'completed':''}" onclick="toggleDone(${idx})">${doneBtnTxt}</button>
+      ${done ? `<button class="undone-btn" onclick="undoDone(${idx})">Batalkan</button>` : ''}
+    </div>
+
+    <p class="section-title">📝 Langkah Latihan</p>
+    <div class="steps-list">${stepsHTML}</div>
+
+    <div class="tip-box">
+      <div class="tip-label">💡 Tips Profesional</div>
+      <div class="tip-text">${d.tip}</div>
+    </div>
+
+    <p class="section-title">🎥 Video YouTube</p>
+    <div class="yt-list">${ytHTML}</div>
+  `;
+  document.getElementById('streakNum').textContent = getStreak();
+}
+
+function toggleDone(idx) {
+  if (isDone(idx)) return;
+  markDone(idx, true);
+  toast('🎉 Hari ' + (idx+1) + ' selesai! Keren!');
+  setTimeout(() => renderToday(), 300);
+}
+function undoDone(idx) {
+  markDone(idx, false);
+  toast('Dibatalkan');
+  renderToday();
+}
+
+// ═══════════════════════ CALENDAR ═══════════════════════
+function renderCalendar() {
+  const todayIdx = getTodayIdx();
+  let html = '';
+  for (let w = 1; w <= 4; w++) {
+    const wc = WEEK_COLORS[w];
+    const dayIndices = DAYS.map((d,i) => d.w === w ? i : -1).filter(i => i >= 0);
+    const cells = dayIndices.map(i => {
+      const d = DAYS[i];
+      const done = isDone(i);
+      const isToday = i === todayIdx;
+      const isFuture = i > todayIdx;
+      const cls = ['cal-day', done?'done':'', isToday?'today':'', isFuture?'future':'', d.cat==='Istirahat Aktif'?'rest-day':''].filter(Boolean).join(' ');
+      return `<div class="${cls}" style="${done?'':'border-color:'+(isToday?'var(--accent)':'var(--border)')+''};" onclick="calTap(${i})">
+        <div class="cn">${i+1}</div>
+        <div class="ci">${done?'✅':isToday?'📌':'○'}</div>
+      </div>`;
+    }).join('');
+    html += `
+      <div class="week-group">
+        <div class="week-label" style="background:${wc.bg};color:${wc.c}">${WEEK_LABELS[w]}</div>
+        <div class="day-grid">${cells}</div>
+      </div>`;
+  }
+  document.getElementById('page-calendar').innerHTML = html;
+}
+
+function calTap(idx) {
+  const d = DAYS[idx];
+  const todayIdx = getTodayIdx();
+  if (idx > todayIdx) { toast('Belum waktunya!'); return; }
+  if (!isDone(idx)) {
+    markDone(idx, true);
+    toast('✅ Hari ' + (idx+1) + ' ditandai selesai!');
+    renderCalendar();
+    document.getElementById('streakNum').textContent = getStreak();
+  } else {
+    markDone(idx, false);
+    toast('Hari ' + (idx+1) + ' dibatalkan');
+    renderCalendar();
+    document.getElementById('streakNum').textContent = getStreak();
+  }
+}
+
+// ═══════════════════════ PROGRESS ═══════════════════════
+function renderProgress() {
+  const total = DAYS.length;
+  const done = Object.keys(state.done).length;
+  const pct = Math.round((done / total) * 100);
+
+  const weekDone = [0,0,0,0];
+  const weekTotal = [0,0,0,0];
+  DAYS.forEach((d,i) => {
+    weekTotal[d.w-1]++;
+    if (isDone(i)) weekDone[d.w-1]++;
+  });
+
+  const r = 70, circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+
+  const weekBarsHTML = [1,2,3,4].map(w => {
+    const wc = WEEK_COLORS[w];
+    const wp = weekTotal[w-1] > 0 ? Math.round((weekDone[w-1]/weekTotal[w-1])*100) : 0;
+    return `<div class="week-bar-row">
+      <div class="week-bar-label" style="color:${wc.c};font-size:11px;font-weight:600">${WEEK_LABELS[w].split('—')[0]}</div>
+      <div class="week-bar-track">
+        <div class="week-bar-fill" style="width:${wp}%;background:${wc.c}"></div>
+      </div>
+      <div class="week-bar-num">${weekDone[w-1]}/${weekTotal[w-1]}</div>
+    </div>`;
+  }).join('');
+
+  const streak = getStreak();
+  const remaining = total - done;
+
+  document.getElementById('page-progress').innerHTML = `
+    <div class="progress-ring-wrap" style="position:relative;width:180px;height:180px;margin:0 auto 20px;">
+      <svg class="ring" width="180" height="180" viewBox="0 0 180 180">
+        <circle class="ring-track" cx="90" cy="90" r="${r}"/>
+        <circle class="ring-fill" cx="90" cy="90" r="${r}" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-pct">${pct}%</div>
+        <div class="ring-sub">${done}/${total} hari</div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-val">${done}</div>
+        <div class="stat-label">Hari Selesai</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">${streak}</div>
+        <div class="stat-label">🔥 Streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">${remaining}</div>
+        <div class="stat-label">Sisa Hari</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">${done > 0 ? Math.round(done * 45) : 0}</div>
+        <div class="stat-label">Menit Latihan</div>
+      </div>
+    </div>
+
+    <p class="section-title">Progress per Minggu</p>
+    <div class="week-bars">${weekBarsHTML}</div>
+  `;
+}
+
+// ═══════════════════════ REMINDER ═══════════════════════
+let reminderInterval = null;
+let reminderOn = false;
+
+function updateTimePreview() {
+  const h = String(document.getElementById('rHour').value).padStart(2,'0');
+  const m = String(document.getElementById('rMin').value).padStart(2,'0');
+  document.getElementById('timePreview').textContent = h + ':' + m;
+}
+document.getElementById('rHour').addEventListener('input', updateTimePreview);
+document.getElementById('rMin').addEventListener('input', updateTimePreview);
+
+function toggleReminder() {
+  if (!reminderOn) {
+    if (!('Notification' in window)) { toast('Browser tidak mendukung notifikasi'); return; }
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') {
+        reminderOn = true;
+        startReminderCheck();
+        const h = document.getElementById('rHour').value;
+        const m = document.getElementById('rMin').value;
+        document.getElementById('reminderToggle').textContent = '🔕 Matikan Pengingat';
+        document.getElementById('reminderToggle').classList.add('on');
+        document.getElementById('notifStatus').textContent = `✅ Pengingat aktif setiap hari pukul ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+        document.getElementById('notifStatus').className = 'notif-status on';
+        toast('🔔 Pengingat diaktifkan!');
+      } else { toast('Izin notifikasi ditolak'); }
+    });
+  } else {
+    reminderOn = false;
+    if (reminderInterval) clearInterval(reminderInterval);
+    document.getElementById('reminderToggle').textContent = '🔔 Aktifkan Pengingat';
+    document.getElementById('reminderToggle').classList.remove('on');
+    document.getElementById('notifStatus').textContent = 'Pengingat dimatikan';
+    document.getElementById('notifStatus').className = 'notif-status off';
+    toast('Pengingat dimatikan');
+  }
+}
+
+function startReminderCheck() {
+  reminderInterval = setInterval(() => {
+    const now = new Date();
+    const h = parseInt(document.getElementById('rHour').value);
+    const m = parseInt(document.getElementById('rMin').value);
+    if (now.getHours() === h && now.getMinutes() === m && now.getSeconds() < 10) {
+      const idx = getTodayIdx();
+      if (!isDone(idx)) {
+        new Notification('🎨 Waktunya Menggambar!', {
+          body: `Hari ${idx+1}: ${DAYS[idx].title} — Ayo latihan hari ini!`,
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🎨</text></svg>'
+        });
+      }
+    }
+  }, 10000);
+}
+
+// ═══════════════════════ TIMER ═══════════════════════
+let timerDuration = 30 * 60;
+let timerLeft = timerDuration;
+let timerRunning = false;
+let timerInterval = null;
+
+function setDuration(min) {
+  if (timerRunning) return;
+  timerDuration = min * 60;
+  timerLeft = timerDuration;
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerLeft / 60);
+  const s = timerLeft % 60;
+  const el = document.getElementById('timerDisplay');
+  if (!el) return;
+  el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  el.className = 'timer-display' + (timerRunning ? ' running' : timerLeft === 0 ? ' done-t' : '');
+}
+
+function timerToggle() {
+  const btn = document.getElementById('timerStartBtn');
+  if (!timerRunning) {
+    timerRunning = true;
+    if(btn) btn.textContent = '⏸ Pause';
+    timerInterval = setInterval(() => {
+      timerLeft--;
+      updateTimerDisplay();
+      if (timerLeft <= 0) {
+        timerRunning = false;
+        clearInterval(timerInterval);
+        if(btn) btn.textContent = '▶ Mulai';
+        toast('✅ Waktu latihan selesai!');
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('✅ Timer Selesai!', { body: 'Waktu latihan menggambarmu selesai. Hebat!' });
+        }
+      }
+    }, 1000);
+  } else {
+    timerRunning = false;
+    clearInterval(timerInterval);
+    if(btn) btn.textContent = '▶ Lanjut';
+  }
+}
+
+function timerReset() {
+  timerRunning = false;
+  clearInterval(timerInterval);
+  timerLeft = timerDuration;
+  const btn = document.getElementById('timerStartBtn');
+  if(btn) btn.textContent = '▶ Mulai';
+  updateTimerDisplay();
+}
+
+// ═══════════════════════ TOAST ═══════════════════════
+let toastTimeout;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════ INIT ═══════════════════════
+renderToday();
+updateTimerDisplay();
+</script>
+</body>
+</html>
